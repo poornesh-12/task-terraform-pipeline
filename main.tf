@@ -1,25 +1,31 @@
 resource "azurerm_resource_group" "rg" {
-  name     = "rg-jenkins-tf"
+  name     = "rg-jenkins-tf-trial"
   location = var.location
+
+  lifecycle {
+    ignore_changes = [
+      tags
+    ]
+  }
 }
 
 resource "azurerm_virtual_network" "vnet" {
-  name                = "vnet-jenkins"
-  address_space       = ["10.0.0.0/16"]
-  location            = var.location
+  name                = "vnet-trial"
+  location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
+  address_space       = ["10.0.0.0/16"]
 }
 
 resource "azurerm_subnet" "subnet" {
-  name                 = "subnet"
+  name                 = "subnet-trial"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
 }
 
 resource "azurerm_network_interface" "nic" {
-  name                = "nic-jenkins"
-  location            = var.location
+  name                = "nic-trial"
+  location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
   ip_configuration {
@@ -27,22 +33,28 @@ resource "azurerm_network_interface" "nic" {
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
   }
+
+  lifecycle {
+    ignore_changes = [
+      ip_configuration
+    ]
+  }
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "jenkins-vm"
-  location            = var.location
+  name                = "jenkins-tf-vm"
   resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
   size                = var.vm_size
-  admin_username      = var.admin_username
+  admin_username      = "azureuser"
+
   network_interface_ids = [
     azurerm_network_interface.nic.id
   ]
 
-  admin_ssh_key {
-    username   = var.admin_username
-    public_key = file("~/.ssh/id_rsa.pub")
-  }
+  admin_password = "Password@123!" # ❗ trial only
+
+  disable_password_authentication = false
 
   os_disk {
     caching              = "ReadWrite"
@@ -55,5 +67,12 @@ resource "azurerm_linux_virtual_machine" "vm" {
     sku       = "22_04-lts"
     version   = "latest"
   }
-}
 
+  lifecycle {
+    ignore_changes = [
+      size,
+      admin_password,
+      os_disk
+    ]
+  }
+}
