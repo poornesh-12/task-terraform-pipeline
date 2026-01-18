@@ -1,78 +1,46 @@
-resource "azurerm_resource_group" "rg" {
-  name     = "rg-jenkins-tf-trial"
-  location = var.location
+pipeline {
+    agent any
 
-  lifecycle {
-    ignore_changes = [
-      tags
-    ]
-  }
-}
+    environment {
+        ARM_CLIENT_ID       = credentials('97b1adeb-9a61-4fc5-9598-4693b38a2494')
+        ARM_CLIENT_SECRET   = credentials('Zzj8Q~Lh4OBqgUJ4ooAAfZZbjzxZcJGlgbAX6b0.')
+        ARM_TENANT_ID       = credentials('84b72206-a90a-4751-82fe-dccd6d183246')
+        ARM_SUBSCRIPTION_ID = credentials('e0d10ccd-48d7-4654-a8b4-0d881dcdeb9e')
+        TF_IN_AUTOMATION    = "true"
+    }
 
-resource "azurerm_virtual_network" "vnet" {
-  name                = "vnet-trial"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  address_space       = ["10.0.0.0/16"]
-}
+    stages {
 
-resource "azurerm_subnet" "subnet" {
-  name                 = "subnet-trial"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"]
-}
+        stage('Checkout Repo') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/poornesh-12/task-terraform-pipeline.git'
+            }
+        }
 
-resource "azurerm_network_interface" "nic" {
-  name                = "nic-trial"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+        stage('Terraform Init') {
+            steps {
+                sh 'terraform init'
+            }
+        }
 
-  ip_configuration {
-    name                          = "internal"
-    subnet_id                     = azurerm_subnet.subnet.id
-    private_ip_address_allocation = "Dynamic"
-  }
+        stage('Terraform Validate') {
+            steps {
+                sh 'terraform validate'
+            }
+        }
 
-  lifecycle {
-    ignore_changes = [
-      ip_configuration
-    ]
-  }
-}
+        stage('Terraform Plan') {
+            steps {
+                sh 'terraform plan -out=tfplan'
+            }
+        }
 
-resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "jenkins-tf-vm"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  size                = var.vm_size
-  admin_username      = "azureuser"
-
-  network_interface_ids = [
-    azurerm_network_interface.nic.id
-  ]
-
-  admin_password = "Password@123!" # ❗ trial only
-
-  disable_password_authentication = false
-
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
-
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts"
-    version   = "latest"
-  }
-
-  lifecycle {
-    ignore_changes = [
-      size,
-      admin_password,
-      os_disk
-    ]
-  }
+        stage('Terraform Apply') {
+            steps {
+                input message: 'Approve Azure VM Creation?'
+                sh 'terraform apply -auto-approve tfplan'
+            }
+        }
+    }
 }
