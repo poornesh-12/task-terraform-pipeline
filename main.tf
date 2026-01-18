@@ -1,6 +1,6 @@
 resource "azurerm_resource_group" "rg" {
   name     = "rg-jenkins-tf"
-  location = "East US"
+  location = "japan east"
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
