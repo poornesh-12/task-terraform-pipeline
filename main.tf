@@ -1,21 +1,46 @@
 resource "azurerm_resource_group" "rg" {
   name     = "rg-jenkins-tf"
-  location = "japan east"
+  location = var.location
+}
+
+resource "azurerm_virtual_network" "vnet" {
+  name                = "vnet-jenkins"
+  address_space       = ["10.0.0.0/16"]
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_subnet" "subnet" {
+  name                 = "subnet1"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+}
+
+resource "azurerm_network_interface" "nic" {
+  name                = "nic-jenkins"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "jenkins-tf-vm"
+  name                = "jenkins-vm"
+  location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  size                = "Standard_B1s"
-  admin_username      = "azureuser"
-
+  size                = var.vm_size
+  admin_username      = var.admin_username
   network_interface_ids = [
     azurerm_network_interface.nic.id
   ]
 
   admin_ssh_key {
-    username   = "azureuser"
+    username   = var.admin_username
     public_key = file("~/.ssh/id_rsa.pub")
   }
 
@@ -30,11 +55,5 @@ resource "azurerm_linux_virtual_machine" "vm" {
     sku       = "22_04-lts"
     version   = "latest"
   }
-
-  lifecycle {
-    ignore_changes = [
-      size,              # trial: ignore VM resize
-      tags               # ignore tag changes
-    ]
-  }
 }
+
