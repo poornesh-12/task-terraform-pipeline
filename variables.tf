@@ -1,11 +1,7 @@
 variable "location" {
-  default = "southafricanorth"
+  default = "East US"
 }
 
 variable "vm_size" {
-  default = "Standard_D2als_v6"
-}
-
-variable "admin_username" {
-  default = "azureuser"
+  default = "Standard_B1s"
 }
