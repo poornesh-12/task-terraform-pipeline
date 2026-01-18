@@ -1,24 +1,24 @@
-resource "azurerm_resource_group" "rg3" {
-  name     = "rg-jenkins-tf3"
+resource "azurerm_resource_group" "rg" {
+  name     = "rg-jenkins-tf"
   location = var.location
 }
 
-resource "azurerm_virtual_network" "vnet3" {
-  name                = "vnet-jenkins3"
+resource "azurerm_virtual_network" "vnet" {
+  name                = "vnet-jenkins"
   address_space       = ["10.0.0.0/16"]
   location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
 }
 
-resource "azurerm_subnet" "subnet3" {
-  name                 = "subnet3"
+resource "azurerm_subnet" "subnet" {
+  name                 = "subnet"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-resource "azurerm_network_interface" "nic3" {
-  name                = "nic-jenkins3"
+resource "azurerm_network_interface" "nic" {
+  name                = "nic-jenkins"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -29,8 +29,8 @@ resource "azurerm_network_interface" "nic3" {
   }
 }
 
-resource "azurerm_linux_virtual_machine" "vm3" {
-  name                = "jenkins-vm3"
+resource "azurerm_linux_virtual_machine" "vm" {
+  name                = "jenkins-vm"
   location            = var.location
   resource_group_name = azurerm_resource_group.rg.name
   size                = var.vm_size
